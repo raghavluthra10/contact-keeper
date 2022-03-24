@@ -1,8 +1,9 @@
-import React, { useReducer } from 'react'
+import React, { useReducer, useCallback } from 'react'
 import AuthContext from './authContext';
 import axios from 'axios';
 import authReducer from './authReducer';
 import { REGISTER_SUCCESS, REGISTER_FAIL, USER_LOADED, AUTH_ERROR, LOGIN_SUCCESS, LOGIN_FAIL, LOGOUT, CLEAR_ERRORS } from '../types';
+import setAuthToken from '../../utils/setAuthToken';
 
 const AuthState = (props) => {
 
@@ -17,7 +18,21 @@ const AuthState = (props) => {
     const [ state, dispatch ] = useReducer( authReducer, initialState );
 
     // Load User to check which user is logged in.
-    const loadUser = () => console.log('Load User');
+    const loadUser = useCallback(async () => {
+        // load token into global headers
+        setAuthToken(localStorage.token);
+        
+
+        try {
+            const res = await axios.get('/api/auth');
+            dispatch({ 
+                type: USER_LOADED, 
+                payload: res.data // res.data is the user information stored in an object
+            })
+        } catch (err) {
+            dispatch({ type: AUTH_ERROR })
+        }
+    },[]);
 
     // Register User to sign user up and get token back
     const register = async formData => {
@@ -34,6 +49,9 @@ const AuthState = (props) => {
                 type: REGISTER_SUCCESS,
                 payload: res.data // res over here is the token 
             })
+
+            loadUser();
+
         } catch (err) {
             dispatch({
                 type: REGISTER_FAIL,
